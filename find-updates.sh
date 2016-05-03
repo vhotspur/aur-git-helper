@@ -48,6 +48,7 @@ compare_version() {
 
 COLOR_RESET='\e[0m'
 COLOR_UPDATE='\e[1;32m'
+COLOR_ERROR='\e[1;31m'
 COLOR_AHEAD='\e[1;36m'
 
 cd packages;
@@ -55,11 +56,14 @@ cd packages;
 for PACKAGE in *; do
 	(
 		cd $PACKAGE;
-		git pull >/dev/null
+		if ! git pull >LAST_FETCH.log 2>&1; then
+		    echo -e "${COLOR_ERROR}$PACKAGE${COLOR_RESET} repository could not be updated." >&2
+		    sed 's#.*# > &#' LAST_FETCH.log >&2
+	    fi
 	)
 	CUR_VER=`pacman -Q $PACKAGE 2>/dev/null | cut '-d ' -f 2`
 	if [ -z "$CUR_VER" ]; then
-		echo "WARNING: $PACKAGE probably not installed, consider removing the repository." >&2
+		echo -e "${COLOR_ERROR}$PACKAGE${COLOR_RESET} probably not installed, consider removing the repository." >&2
 		continue
 	fi
 	REPO_VER=`grep -e pkgver -e pkgrel $PACKAGE/.SRCINFO  | cut -d= -f 2 | tr -d ' ' | paste -sd-`
